@@ -1,8 +1,41 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { NetworkSelector } from "@/components/NetworkSelector";
 import { WalletButton } from "@/components/WalletButton";
-import { Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sparkles, LogOut } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 export const Header = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    toast({
+      title: "خروج موفق",
+      description: "با موفقیت از حساب خود خارج شدید",
+    });
+    navigate("/auth");
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 glass-card">
       <div className="container flex h-16 items-center justify-between px-4">
@@ -28,7 +61,19 @@ export const Header = () => {
 
         <div className="flex items-center gap-3">
           <NetworkSelector />
-          <WalletButton />
+          {user ? (
+            <>
+              <WalletButton />
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 ml-2" />
+                خروج
+              </Button>
+            </>
+          ) : (
+            <Button variant="neon" onClick={() => navigate("/auth")}>
+              ورود / ثبت‌نام
+            </Button>
+          )}
         </div>
       </div>
     </header>

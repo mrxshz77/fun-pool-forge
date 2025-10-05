@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,27 +10,113 @@ import { Zap, Shield } from "lucide-react";
 import { toast } from "sonner";
 
 export const LoansManager = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
   const [flashLoanAmount, setFlashLoanAmount] = useState("");
   const [collateralAmount, setCollateralAmount] = useState("");
   const [borrowAmount, setBorrowAmount] = useState("");
 
-  const handleFlashLoan = () => {
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleFlashLoan = async () => {
+    if (!user) {
+      toast.error("لطفاً ابتدا وارد شوید");
+      navigate("/auth");
+      return;
+    }
+
     if (!flashLoanAmount) {
       toast.error("مقدار وام فلش را وارد کنید");
       return;
     }
-    toast.success("وام فلش با موفقیت دریافت شد!");
-    setFlashLoanAmount("");
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.from("loans").insert({
+        borrower_id: user.id,
+        loan_type: "flash",
+        amount: parseFloat(flashLoanAmount),
+        status: "active",
+      });
+
+      if (error) throw error;
+
+      await supabase.from("transactions").insert({
+        user_id: user.id,
+        transaction_type: "borrow",
+        amount: parseFloat(flashLoanAmount),
+        status: "success",
+      });
+
+      toast.success("وام فلش با موفقیت دریافت شد!");
+      setFlashLoanAmount("");
+    } catch (error: any) {
+      toast.error(error.message || "خطا در دریافت وام");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCollateralLoan = () => {
+  const handleCollateralLoan = async () => {
+    if (!user) {
+      toast.error("لطفاً ابتدا وارد شوید");
+      navigate("/auth");
+      return;
+    }
+
     if (!collateralAmount || !borrowAmount) {
       toast.error("تمام فیلدها را پر کنید");
       return;
     }
-    toast.success("وام وثیقه‌ای با موفقیت دریافت شد!");
-    setCollateralAmount("");
-    setBorrowAmount("");
+
+    const ltv = (parseFloat(borrowAmount) / parseFloat(collateralAmount)) * 100;
+    if (ltv > 75) {
+      toast.error("نسبت LTV نباید بیشتر از 75% باشد");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.from("loans").insert({
+        borrower_id: user.id,
+        loan_type: "collateralized",
+        amount: parseFloat(borrowAmount),
+        collateral_amount: parseFloat(collateralAmount),
+        status: "active",
+      });
+
+      if (error) throw error;
+
+      await supabase.from("transactions").insert({
+        user_id: user.id,
+        transaction_type: "borrow",
+        amount: parseFloat(borrowAmount),
+        status: "success",
+      });
+
+      toast.success("وام وثیقه‌ای با موفقیت دریافت شد!");
+      setCollateralAmount("");
+      setBorrowAmount("");
+    } catch (error: any) {
+      toast.error(error.message || "خطا در دریافت وام");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -86,9 +174,9 @@ export const LoansManager = () => {
               </div>
             </div>
 
-            <Button onClick={handleFlashLoan} variant="neon" className="w-full gap-2">
+            <Button onClick={handleFlashLoan} variant="neon" className="w-full gap-2" disabled={loading}>
               <Zap className="h-4 w-4" />
-              دریافت وام فلش
+              {loading ? "در حال دریافت..." : "دریافت وام فلش"}
             </Button>
           </TabsContent>
 
@@ -145,9 +233,9 @@ export const LoansManager = () => {
               </div>
             </div>
 
-            <Button onClick={handleCollateralLoan} className="w-full gap-2">
+            <Button onClick={handleCollateralLoan} className="w-full gap-2" disabled={loading}>
               <Shield className="h-4 w-4" />
-              دریافت وام وثیقه‌ای
+              {loading ? "در حال دریافت..." : "دریافت وام وثیقه‌ای"}
             </Button>
           </TabsContent>
         </Tabs>

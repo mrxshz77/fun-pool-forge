@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,25 +10,137 @@ import { Droplets, Plus, Minus } from "lucide-react";
 import { toast } from "sonner";
 
 export const LiquidityPools = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
   const [addAmount, setAddAmount] = useState("");
   const [removeAmount, setRemoveAmount] = useState("");
+  const [tokens, setTokens] = useState<any[]>([]);
+  const [selectedTokenId, setSelectedTokenId] = useState("");
 
-  const handleAddLiquidity = () => {
-    if (!addAmount) {
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    fetchTokens();
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const fetchTokens = async () => {
+    const { data } = await supabase.from("tokens").select("*").limit(10);
+    if (data) {
+      setTokens(data);
+      if (data.length > 0) setSelectedTokenId(data[0].id);
+    }
+  };
+
+  const handleAddLiquidity = async () => {
+    if (!user) {
+      toast.error("لطفاً ابتدا وارد شوید");
+      navigate("/auth");
+      return;
+    }
+
+    if (!addAmount || !selectedTokenId) {
       toast.error("مقدار را وارد کنید");
       return;
     }
-    toast.success("نقدینگی با موفقیت اضافه شد!");
-    setAddAmount("");
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.from("liquidity_pools").insert({
+        user_id: user.id,
+        token_id: selectedTokenId,
+        amount: parseFloat(addAmount),
+      });
+
+      if (error) throw error;
+
+      await supabase.from("transactions").insert({
+        user_id: user.id,
+        transaction_type: "add_liquidity",
+        token_id: selectedTokenId,
+        amount: parseFloat(addAmount),
+        status: "success",
+      });
+
+      toast.success("نقدینگی با موفقیت اضافه شد!");
+      setAddAmount("");
+    } catch (error: any) {
+      toast.error(error.message || "خطا در افزودن نقدینگی");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleRemoveLiquidity = () => {
+  const handleRemoveLiquidity = async () => {
+    if (!user) {
+      toast.error("لطفاً ابتدا وارد شوید");
+      navigate("/auth");
+      return;
+    }
+
     if (!removeAmount) {
       toast.error("مقدار را وارد کنید");
       return;
     }
-    toast.success("نقدینگی با موفقیت برداشت شد!");
-    setRemoveAmount("");
+
+    setLoading(true);
+
+    try {
+      const { data: pools } = await supabase
+        .from("liquidity_pools")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("token_id", selectedTokenId)
+        .limit(1)
+        .single();
+
+      if (!pools) {
+        toast.error("نقدینگی یافت نشد");
+        return;
+      }
+
+      const newAmount = pools.amount - parseFloat(removeAmount);
+
+      if (newAmount < 0) {
+        toast.error("مقدار برداشت بیش از موجودی است");
+        return;
+      }
+
+      if (newAmount === 0) {
+        await supabase.from("liquidity_pools").delete().eq("id", pools.id);
+      } else {
+        await supabase
+          .from("liquidity_pools")
+          .update({ amount: newAmount })
+          .eq("id", pools.id);
+      }
+
+      await supabase.from("transactions").insert({
+        user_id: user.id,
+        transaction_type: "remove_liquidity",
+        token_id: selectedTokenId,
+        amount: parseFloat(removeAmount),
+        status: "success",
+      });
+
+      toast.success("نقدینگی با موفقیت برداشت شد!");
+      setRemoveAmount("");
+    } catch (error: any) {
+      toast.error(error.message || "خطا در برداشت نقدینگی");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -87,9 +201,9 @@ export const LiquidityPools = () => {
               </div>
             </div>
 
-            <Button onClick={handleAddLiquidity} variant="neon" className="w-full gap-2">
+            <Button onClick={handleAddLiquidity} variant="neon" className="w-full gap-2" disabled={loading}>
               <Plus className="h-4 w-4" />
-              افزودن نقدینگی
+              {loading ? "در حال افزودن..." : "افزودن نقدینگی"}
             </Button>
           </TabsContent>
 
@@ -100,7 +214,7 @@ export const LiquidityPools = () => {
                 <span className="font-semibold">850.00 SOL</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">سود کسب شده</span>
+                <span className="text-muted-foreground">سود کسب شده</span>
                 <span className="font-semibold text-green-500">+42.5 SOL</span>
               </div>
             </div>
@@ -130,9 +244,9 @@ export const LiquidityPools = () => {
               </div>
             </div>
 
-            <Button onClick={handleRemoveLiquidity} variant="destructive" className="w-full gap-2">
+            <Button onClick={handleRemoveLiquidity} variant="destructive" className="w-full gap-2" disabled={loading}>
               <Minus className="h-4 w-4" />
-              برداشت نقدینگی
+              {loading ? "در حال برداشت..." : "برداشت نقدینگی"}
             </Button>
           </TabsContent>
         </Tabs>

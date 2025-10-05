@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +10,9 @@ import { Rocket, Image } from "lucide-react";
 import { toast } from "sonner";
 
 export const TokenLaunchpad = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     symbol: "",
@@ -16,12 +21,73 @@ export const TokenLaunchpad = () => {
     imageUrl: "",
   });
 
-  const handleLaunch = () => {
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLaunch = async () => {
+    if (!user) {
+      toast.error("لطفاً ابتدا وارد شوید");
+      navigate("/auth");
+      return;
+    }
+
     if (!formData.name || !formData.symbol || !formData.supply) {
       toast.error("لطفا تمام فیلدهای اجباری را پر کنید");
       return;
     }
-    toast.success("توکن شما با موفقیت ایجاد شد!");
+
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from("tokens")
+        .insert({
+          creator_id: user.id,
+          name: formData.name,
+          symbol: formData.symbol.toUpperCase(),
+          description: formData.description,
+          supply: parseInt(formData.supply),
+          image_url: formData.imageUrl,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Create transaction record
+      await supabase.from("transactions").insert({
+        user_id: user.id,
+        transaction_type: "launch",
+        token_id: data.id,
+        amount: parseInt(formData.supply),
+        status: "success",
+      });
+
+      toast.success("توکن شما با موفقیت ایجاد شد!");
+
+      setFormData({
+        name: "",
+        symbol: "",
+        description: "",
+        supply: "",
+        imageUrl: "",
+      });
+    } catch (error: any) {
+      toast.error(error.message || "خطا در ایجاد توکن");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -99,9 +165,9 @@ export const TokenLaunchpad = () => {
           </div>
         </div>
 
-        <Button onClick={handleLaunch} variant="neon" className="w-full" size="lg">
+        <Button onClick={handleLaunch} variant="neon" className="w-full" size="lg" disabled={loading}>
           <Rocket className="h-4 w-4 mr-2" />
-          راه‌اندازی توکن
+          {loading ? "در حال ایجاد..." : "راه‌اندازی توکن"}
         </Button>
       </CardContent>
     </Card>
