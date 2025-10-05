@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -7,6 +6,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Network } from "lucide-react";
+import { useNetwork } from "@/contexts/NetworkContext";
 
 type NetworkType = "mainnet" | "devnet" | "testnet";
 
@@ -22,24 +22,24 @@ const getNetworkLabel = (network: NetworkType) => {
 };
 
 export const NetworkSelector = () => {
-  const [selectedNetwork, setSelectedNetwork] = useState<NetworkType>("mainnet");
+  const { network, setNetwork } = useNetwork();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="gap-2">
           <Network className="h-4 w-4" />
-          {getNetworkLabel(selectedNetwork)}
+          {getNetworkLabel(network)}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="glass-card">
-        <DropdownMenuItem onClick={() => setSelectedNetwork("mainnet")}>
+        <DropdownMenuItem onClick={() => setNetwork("mainnet")}>
           Mainnet
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setSelectedNetwork("devnet")}>
+        <DropdownMenuItem onClick={() => setNetwork("devnet")}>
           Devnet
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setSelectedNetwork("testnet")}>
+        <DropdownMenuItem onClick={() => setNetwork("testnet")}>
           Testnet
         </DropdownMenuItem>
       </DropdownMenuContent>

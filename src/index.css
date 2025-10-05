@@ -86,4 +86,42 @@ All colors MUST be HSL.
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
+  /* Wallet Adapter Styles */
+  .wallet-adapter-button-wrapper {
+    display: flex;
+    align-items: center;
+  }
+
+  .wallet-adapter-button {
+    @apply !bg-gradient-to-r !from-primary !to-accent !text-primary-foreground hover:!opacity-90 !shadow-[0_0_30px_hsl(280_90%_65%/0.4)] hover:!shadow-[0_0_40px_hsl(280_90%_65%/0.6)] !transition-all !rounded-md !h-10 !px-4 !py-2 !text-sm !font-medium;
+  }
+
+  .wallet-adapter-button:not([disabled]):hover {
+    @apply !bg-gradient-to-r !from-primary !to-accent !opacity-90;
+  }
+
+  .wallet-adapter-modal-wrapper {
+    @apply !bg-background/95 backdrop-blur-lg;
+  }
+
+  .wallet-adapter-modal {
+    @apply !bg-card !border !border-border/40 !rounded-lg !shadow-2xl;
+  }
+
+  .wallet-adapter-modal-title {
+    @apply !text-foreground !text-xl !font-bold;
+  }
+
+  .wallet-adapter-modal-list {
+    @apply !gap-2;
+  }
+
+  .wallet-adapter-modal-list-item {
+    @apply !bg-muted hover:!bg-muted/80 !border !border-border/40 !rounded-lg !transition-all;
+  }
+
+  .wallet-adapter-button-trigger {
+    @apply !bg-gradient-to-r !from-primary !to-accent !text-primary-foreground;
+  }
 }
