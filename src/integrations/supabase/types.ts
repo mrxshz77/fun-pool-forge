@@ -14,7 +14,168 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      liquidity_pools: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          pool_address: string | null
+          token_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          pool_address?: string | null
+          token_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          pool_address?: string | null
+          token_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "liquidity_pools_token_id_fkey"
+            columns: ["token_id"]
+            isOneToOne: false
+            referencedRelation: "tokens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loans: {
+        Row: {
+          amount: number
+          borrower_id: string
+          collateral_amount: number | null
+          created_at: string
+          id: string
+          loan_type: string
+          repaid_at: string | null
+          status: string
+          token_id: string | null
+        }
+        Insert: {
+          amount: number
+          borrower_id: string
+          collateral_amount?: number | null
+          created_at?: string
+          id?: string
+          loan_type: string
+          repaid_at?: string | null
+          status?: string
+          token_id?: string | null
+        }
+        Update: {
+          amount?: number
+          borrower_id?: string
+          collateral_amount?: number | null
+          created_at?: string
+          id?: string
+          loan_type?: string
+          repaid_at?: string | null
+          status?: string
+          token_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loans_token_id_fkey"
+            columns: ["token_id"]
+            isOneToOne: false
+            referencedRelation: "tokens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tokens: {
+        Row: {
+          created_at: string
+          creator_id: string
+          description: string | null
+          id: string
+          image_url: string | null
+          mint_address: string | null
+          name: string
+          supply: number
+          symbol: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          mint_address?: string | null
+          name: string
+          supply: number
+          symbol: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          mint_address?: string | null
+          name?: string
+          supply?: number
+          symbol?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number | null
+          created_at: string
+          id: string
+          signature: string | null
+          status: string
+          token_id: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          id?: string
+          signature?: string | null
+          status?: string
+          token_id?: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          id?: string
+          signature?: string | null
+          status?: string
+          token_id?: string | null
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_token_id_fkey"
+            columns: ["token_id"]
+            isOneToOne: false
+            referencedRelation: "tokens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
