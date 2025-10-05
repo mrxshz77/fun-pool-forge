@@ -8,20 +8,34 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Network } from "lucide-react";
 
-type NetworkType = "devnet" | "testnet";
+type NetworkType = "mainnet" | "devnet" | "testnet";
+
+const getNetworkLabel = (network: NetworkType) => {
+  switch (network) {
+    case "mainnet":
+      return "Mainnet";
+    case "devnet":
+      return "Devnet";
+    case "testnet":
+      return "Testnet";
+  }
+};
 
 export const NetworkSelector = () => {
-  const [selectedNetwork, setSelectedNetwork] = useState<NetworkType>("devnet");
+  const [selectedNetwork, setSelectedNetwork] = useState<NetworkType>("mainnet");
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="gap-2">
           <Network className="h-4 w-4" />
-          {selectedNetwork === "devnet" ? "Devnet" : "Testnet"}
+          {getNetworkLabel(selectedNetwork)}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="glass-card">
+        <DropdownMenuItem onClick={() => setSelectedNetwork("mainnet")}>
+          Mainnet
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setSelectedNetwork("devnet")}>
           Devnet
         </DropdownMenuItem>
