@@ -1,6 +1,7 @@
 import { Header } from "@/components/Header";
 import { TokenLaunchpad } from "@/components/TokenLaunchpad";
 import { TokenList } from "@/components/TokenList";
+import { TradingInterface } from "@/components/TradingInterface";
 import { LiquidityPools } from "@/components/LiquidityPools";
 import { LoansManager } from "@/components/LoansManager";
 
@@ -25,6 +26,9 @@ const Index = () => {
 
         {/* Token List */}
         <TokenList />
+
+        {/* Trading Interface */}
+        <TradingInterface />
 
         {/* Two Column Layout for Pools and Loans */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
